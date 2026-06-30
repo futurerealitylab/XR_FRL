@@ -1,0 +1,110 @@
+let loadScript = (src, callback) => {
+    const script = document.createElement('script');
+    src = src.trim();
+    src = src.indexOf('/') < 0 ? 'core/js/' + src + '.js' : src;
+    script.src = src;
+    script.type = 'text/javascript';
+    script.async = true;
+    script.onload = () => callback ? callback() : null;
+    script.onerror = () => { }
+    document.head.appendChild(script);
+}
+
+let loadScripts = (names, callback, index = 0) => {
+   if (index < names.length)
+      loadScript(names[index], () => {
+         if (index < names.length-1)
+            loadScripts(names, callback, index+1);
+         else if (callback)
+            callback();
+      });
+}
+
+async function getFile(file, callback) {
+    try {
+        const response = await fetch(file);
+        if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+        callback(await response.text());
+    } catch (error) { }
+}
+
+// The global object that will contain commonly used functions.
+let _ = {};
+
+// Core scripts - loaded once at startup (includes WebRTC)
+let coreFiles = `channel,pca,loadImage,webgl,webcam,trackHead,help,
+	        cardDeck,midi,numberString,pen,aiScriptPanel,matchCurves,
+	        glyphs,chalktalk,codeArea,math,shape,shader,
+	        diagram,sliders,widgets,webrtc-client,video-ui,implicit,
+		mediapipe,gesture,shadowHand,tracking,handPose,main,keyEvent,
+		game,fetchWikipediaArticle,playingCards`.split(',');
+
+let project, slideData;
+let coreLoaded = false;
+// projectSelectorUI is set globally from index.html - don't redeclare with 'let'
+// This ensures the reference is properly shared between bici.js and index.html
+
+// Load core scripts immediately (called on page load)
+let loadCore = (callback) => {
+   if (coreLoaded) {
+      if (callback) callback();
+      return;
+   }
+   loadScripts(coreFiles, () => {
+      coreLoaded = true;
+      if (callback) callback();
+   });
+}
+
+// Load project-specific content (can be called multiple times to switch projects)
+let loadProject = projectName => {
+   project = projectName;
+   
+   // Hide project selector - use .hidden class to move off-screen and disable pointer events
+   // This ensures it doesn't block mouse events on canvas3D and codeArea
+   // Use window.projectSelectorUI to access the global variable set in index.html
+   if (window.projectSelectorUI) {
+      window.projectSelectorUI.classList.add('hidden');
+   }
+   
+   getFile('projects/' + project + '/slides.txt', s => {
+      slideData = s.split('\n');
+      
+      // If core is already loaded, just initialize the project
+      if (coreLoaded) {
+         if (typeof initProject === 'function') {
+            initProject();
+         }
+      } else {
+         // First time - load core scripts then init
+         loadCore(() => {
+            if (typeof initProject === 'function') {
+               initProject();
+            }
+         });
+      }
+   });
+}
+
+window.speech = '';
+let startSpeechRecognition = () => {
+   let reco = new window.webkitSpeechRecognition();
+   reco.continuous = true;
+   reco.lang = 'en-US';
+   reco.interimResults = false;
+   reco.maxAlternatives = 1;
+   reco.onresult = event => speech = event.results[event.resultIndex][0].transcript;
+   reco.onend = () => startSpeechRecognition();
+   reco.start();
+}
+startSpeechRecognition();
+
+// Show project selector UI
+let showProjectSelector = () => {
+   // Use window.projectSelectorUI to access the global variable set in index.html
+   if (window.projectSelectorUI) {
+      window.projectSelectorUI.classList.remove('hidden');
+   }
+}
+

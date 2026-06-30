@@ -1,0 +1,27 @@
+let L1 = .65, L2 = .8;
+
+let [a,b,c] = [@0,@1,@2];
+
+if (isIK) [a,b,c] = IK(L1,L2,[a,b,c]);
+
+cg.move(0,-.6,0)
+ 
+  .push().move(0,-.24,0).draw(tubeY,[1,1,1],[.2,.1,.2]).pop()
+
+  .turnY(a)                              //////////
+
+  .push().draw(tube,[0,.5,1],.14).pop()
+
+  .turnZ(b)                              //////////
+
+  .push().move(0,.33,0).draw(cube,[.5,.5,.5],[.04,.2,.04]).pop()
+
+  .move(0,L1,0).turnZ(c)                 //////////
+
+  .push().draw(tube,[0,.5,.2],.13).pop()
+  .push().move(0,.41,0).draw(cube,[.5,.5,.5],[.04,.3,.04]).pop()
+
+  .move(0,L2,0)                          //////////
+
+  .push().draw(ball,[1,0,0],.12).pop()
+;
